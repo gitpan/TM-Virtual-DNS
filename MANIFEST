@@ -1,0 +1,9 @@
+Changes
+Makefile.PL
+MANIFEST
+README
+t/00pods.t
+t/01dns.t
+t/log.conf
+lib/TM/Virtual/DNS.pm
+META.yml                                 Module meta-data (added by MakeMaker)

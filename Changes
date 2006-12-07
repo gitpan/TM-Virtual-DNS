@@ -1,0 +1,10 @@
+Revision history for Perl extension TM::Virtual::DNS.
+
+0.10 Thu Dec  7 12:18:17 EST 2006
+	- first CPANized version
+	- alignment with subject indicator/locator terminology
+	- added: documentation (except match_forall)
+	- TODO: integration with TM::Tau
+	- TODO: use of TM::QL
+
+

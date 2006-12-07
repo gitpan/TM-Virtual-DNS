@@ -1,0 +1,30 @@
+Virtual Topic Maps over DNS
+===========================
+
+In case you do not know what Topic Maps are, then please work through
+this stuff first:
+
+   http://www.ontopia.net/topicmaps/materials/tao.html
+
+   http://topicmaps.bond.edu.au/tutorial/
+
+This package provides a 'virtualizer' for the global DNS. This means
+that forward and reverse lookups can be done (later) with TMQL (the
+query language) as if the DNS were in fact a topic map.
+
+INSTALLATION
+
+To install this module type the following:
+
+   perl Makefile.PL
+   make
+   make test
+   make install
+
+Copyright (C) 2005 by Robert Barta
+
+This library is free software; you can redistribute it and/or modify
+it under the same terms as Perl itself, either Perl version 5.8.4 or,
+at your option, any later version of Perl 5 you may have available.
+
+
