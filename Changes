@@ -1,5 +1,10 @@
 Revision history for Perl extension TM::Virtual::DNS.
 
+0.11 Sa 5. Apr 16:27:36 CEST 2008
+	- aligned it to TM 1.36 structure
+	- removed all reference to Bond
+	- activated all test using TMQL
+
 0.10 Thu Dec  7 12:18:17 EST 2006
 	- first CPANized version
 	- alignment with subject indicator/locator terminology

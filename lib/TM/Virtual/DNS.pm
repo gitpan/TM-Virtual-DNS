@@ -24,15 +24,15 @@ TM::Virtual::DNS - Virtual Topic Map for DNS retrieval
   my $dns = new TM::Virtual::DNS;
 
   # forward lookup
-  my @As = $tm->match_forall (irole   => $tm->mids ('fqdn'), 
-                              iplayer => $tm->mids ('a.root-servers.net.'),
-                              type    => $tm->mids ('lookup'));
-  print map { TM::get_x_player ($dns, $_, $dns->mids ('ip-address') } @As;
+  my @As = $tm->match_forall (irole   => $tm->tids ('fqdn'), 
+                              iplayer => $tm->tids ('a.root-servers.net.'),
+                              type    => $tm->tids ('lookup'));
+  print map { TM::get_x_players ($dns, $_, $dns->tids ('ip-address') } @As;
 
   # reverse lookup
-  my @PTRs = $tm->match_forall (irole   => $tm->mids ('ip-address'), 
-                                iplayer => $tm->mids ('127.0.0.1'),
-                                type    => $tm->mids ('lookup'));
+  my @PTRs = $tm->match_forall (irole   => $tm->tids ('ip-address'), 
+                                iplayer => $tm->tids ('127.0.0.1'),
+                                type    => $tm->tids ('lookup'));
 
 =head1 ABSTRACT
 
@@ -87,6 +87,8 @@ bn: localhost
 sin: http://topicmaps.bond.edu.au/mda/internet/dns/localhost
 sin: http://en.wikipedia.org/wiki/Localhost
 
+lookup
+
 # constraints do not exist at the moment
 
 };
@@ -95,8 +97,8 @@ sin: http://en.wikipedia.org/wiki/Localhost
 
 =head2 Identification
 
-While the predefined concepts have subject indicators, we introduce here our own URI
-namespaces to provide for subject indicators for IP addresses and FQDN:
+While the predefined concepts have subject indicators, we introduce here our own URI namespaces to
+provide for subject indicators for IP addresses and FQDN:
 
 =head3 Subject Identifiers
 
@@ -118,7 +120,7 @@ Example:
 
 This package recognizes these subject indicators:
 
-   print "yes" if $tm->mids (\ 'urn:x-ip:123.123.123.123');
+   print "yes" if $tm->tids (\ 'urn:x-ip:123.123.123.123');
 
 =head3 Subject Locators
 
@@ -129,9 +131,9 @@ There are no subject locators for IP addresses and FQDNs.
 As local identifiers you can use IP addresses and FQDNs directly, they will be detected by
 their syntactic structure:
 
-   warn $tm->mids ('123.123.123.123');  # will create an absolutized local URI
+   warn $tm->tids ('123.123.123.123');  # will create an absolutized local URI
 
-   warn $tm->mids ('www.google.com');   # ditto
+   warn $tm->tids ('www.google.com');   # ditto
 
 
 =head1 INTERFACE
@@ -209,7 +211,7 @@ sub midlets {
 
 =pod
 
-=item B<mids>
+=item B<tids>
 
 This method expects a list of I<identification> parameters and will return a fully absolutized URI
 for each of these. Apart from understanding the identifiers (as explained above), it should follow
@@ -217,16 +219,17 @@ the semantics of the mother class. It can also be used in list context.
 
 =cut
 
-sub mids {
+sub tids {
     my $self = shift;
     my $bu   = $self->baseuri;
 
-#warn "mids ".Dumper \@_;
+#warn "tids ".Dumper \@_;
 
     my @ks;
     foreach (@_) {
-#warn "xxx".$_;
-	if (ref ($_)) {                                                  # we got a subject indicator
+	if (!defined $_) {
+	    return undef;
+	} elsif (ref ($_)) {                                             # we got a subject indicator
 	    my $si = $$_;
 	    if ($si =~ /^urn:x-ip:((\d+)\.(\d+)\.(\d+)\.(\d+))$/ &&      # that indicating an IP address
 		$2 < 256 && $3 < 256 && $4 < 256 && $5 < 256) {
@@ -236,7 +239,7 @@ sub mids {
 		push @ks, $bu.'fqdn:'.$1;
 
 	    } else {
-		push @ks, $self->SUPER::mids ($_);
+		push @ks, $self->SUPER::tids ($_);
 	    }
 
 	# } elsif () {                                                   # in this world we NEVER have a subject locator
@@ -258,33 +261,35 @@ sub mids {
 	    push @ks, undef;
 	}
     }
+#warn "tids end ".Dumper \@ks;
     return wantarray ? @ks : $ks[0];
 }
 
 =pod
 
-=item B<midlet>
+=item B<toplets>
 
-This method returns midlet structures as described in L<TM>, either those of predefined concepts or
+This method returns toplet structures as described in L<TM>, either those of predefined concepts or
 ones which are created on the fly if we are dealing with IP addresses or FQDNs.
 
 =cut
 
-sub midlet {
+sub toplets {
     my $self = shift;
     my $bu   = $self->baseuri;
 
+    $TM::log->logdie (scalar __PACKAGE__ . ": unwilling to enumerate everything") unless @_;
+
     my @ks   = map {
-	             $self->SUPER::midlet ($_) ||                      # if it is in the background map, then let's take that
-		    (
-		     ( /^${bu}ip:(.+)$/ )                              # smells like an IP address
-		     ? [ undef, [ 'urn:x-ip:'.$1 ] ]                   # create a subject indicator on the fly
-		     :
-		     ( /^${bu}fqdn:([\w\-\.]+)$/                       # smells like a name
-		       ? [ undef, [ 'urn:x-fqdn:'.$1 ] ]
-		       : undef                                         # no idea what this should be
-		       )
-		     )
+	            $self->tids ($_) 
+                    ? $self->SUPER::toplets ($_)                       # if it is in the background map, then let's take that
+                    : ( ( /^${bu}ip:(.+)$/ )                           # smells like an IP address
+		      ? [ $_, undef, [ 'urn:x-ip:'.$1 ] ]              # create a toplet with subject indicator on the fly
+		      : ( /^${bu}fqdn:([\w\-\.]+)$/                    # smells like a name
+		        ? [ $_, undef, [ 'urn:x-fqdn:'.$1 ] ]          # create toplet with subject indicator in the fly
+		        : undef                                        # no idea what this should be
+		        )
+		      )
 		} @_;
 
     return wantarray ? @ks : $ks[0];
@@ -296,22 +301,30 @@ sub midlet {
 
 @@@@ doc!! @@@
 
+@@@ which axes are supported @@@
+
 =cut
+
+sub _match_forall {
+    my @x = _match_forall (@_);
+    warn "returning form DNS match ".Dumper \@x;
+    return @x;
+}
 
 sub match_forall {
     my $self   = shift;
     my $bu     = $self->baseuri;
     my %query  = @_;
+#warn "# dns match!!!" .Dumper \%query;
 
-#warn "dns match!!!" .Dumper \%query;
-    die scalar __PACKAGE__ . ": unwilling to enumerate everything" unless %query;
+    $TM::log->logdie (scalar __PACKAGE__ . ": unwilling to enumerate everything") unless %query;
 
-    my ($LOOKUP, $FQDN, $IP_ADDRESS, $INSTANCE, $CLASS) = $self->mids ('lookup', 'fqdn', 'ip-address', 'instance', 'class');
+    my ($LOOKUP, $FQDN, $IP_ADDRESS, $INSTANCE, $CLASS) = $self->tids ('lookup', 'fqdn', 'ip-address', 'instance', 'class');
 
-    if ($query{char}) {                                                # want characteristics of something
+    if ($query{char}) {                                                   # want characteristics of something
 	$_ = $query{irole};
 
-	if (/ip:(.*)/) {
+	if (/ip:(.*)/) {                                                  # 123.123.123.123
 	    return $self->assert (
 				  [ undef,
 				    undef,
@@ -321,7 +334,7 @@ sub match_forall {
 				    [ $_,      new TM::Literal ("$1") ],
 				    ]);
 
-	} elsif (/fqdn:(.+)$/ ) {                                       # www.rumsti.ramsti.de
+	} elsif (/fqdn:(.+)$/ ) {                                         # www.rumsti.ramsti.de
 	    return $self->assert (
 				  [ undef,
 				    undef,
@@ -334,7 +347,10 @@ sub match_forall {
 	} else {
 	    return $self->SUPER::match_forall (%query);
 	}
-    } elsif ($query{instance}) {
+    } elsif ($query{instance} ||                                          # either we directly ask for instance assocs
+             (defined $query{irole} &&
+               $query{irole} eq $INSTANCE &&                              # or we have the role instance 
+              ($query{instance} = $query{iplayer}))) {                    # and the player has the instance
 	if ($query{instance} eq $bu.'localhost' ||
 	    $query{instance} =~ /fqdn:(.+)$/) {
 	    return $self->assert (Assertion->new (scope   => 'us',
@@ -348,16 +364,14 @@ sub match_forall {
 						  roles   => [ 'class',     'instance' ],
 						  players => [ 'ip-address', $query{instance} ]));
 
-	} elsif (my $a = $self->retrieve ($query{instance})) {
- 	    return $self->assert (Assertion->new (scope   => 'us',
-						  type    => 'isa',
-						  roles   => [ 'class',        'instance' ],
-						  players => [ $a->[TM->TYPE], $query{instance} ]));
-
 	} else {
 	    return $self->SUPER::match_forall (@_);
 	}
-    } elsif ($query{type} eq $LOOKUP) {
+
+
+    } elsif ($query{irole} && $query{iplayer}) {
+                      # actually we do not look at the type here
+                      # TODO: maybe we should
 	if (($query{irole} eq $FQDN       && $query{iplayer} eq $bu.'localhost') ||
 	    ($query{irole} eq $IP_ADDRESS && $query{iplayer} eq $bu.'ip:127.0.0.1')) {
 	    return $self->assert (Assertion->new (scope   => 'us',
@@ -430,15 +444,15 @@ Robert Barta, E<lt>drrho@cpan.orgE<gt>
 
 =head1 COPYRIGHT AND LICENSE
 
-Copyright 200[356] by Robert Barta
+Copyright 200[3568] by Robert Barta
 
 This library is free software; you can redistribute it and/or modify
 it under the same terms as Perl itself.
 
 =cut
 
-our $VERSION  = '0.10';
-our $REVISION = '$Id: DNS.pm,v 1.7 2006/12/07 04:08:24 rho Exp $';
+our $VERSION  = '0.11';
+our $REVISION = '$Id: DNS.pm,v 1.8 2006/12/11 10:23:55 rho Exp $';
 
 1;
 
@@ -586,8 +600,8 @@ sub _make_instance_s {
 	  push @l, new Toplet (lid   => $self->{baseuri}.ip2tid ($_),
 			       sids  => [ "urn:x-ip:$1" ],
 			       chars => [ new Characteristic (lid   => undef,
-							      scope => $self->{ontology}->mids ('us'),
-							      type  => $self->{ontology}->mids ('has-basename'),
+							      scope => $self->{ontology}->tids ('us'),
+							      type  => $self->{ontology}->tids ('has-basename'),
 							      kind  => TM::Retrieve::KIND_BN, 
 							      value => $1 ) ]);
 	  
@@ -596,8 +610,8 @@ sub _make_instance_s {
 	  push @l, new Toplet (lid   => $self->{baseuri}.$_,
 			       sids  => [ "urn:x-ip:$2.$3.$4.$5" ],
 			       chars => [ new Characteristic (lid   => undef,
-							      scope => $self->{ontology}->mids ('us'),
-							      type  => $self->{ontology}->mids ('has-basename'),
+							      scope => $self->{ontology}->tids ('us'),
+							      type  => $self->{ontology}->tids ('has-basename'),
 							      kind  => TM::Retrieve::KIND_BN, 
 							      value => "$2.$3.$4.$5" ) ]);
 
@@ -605,8 +619,8 @@ sub _make_instance_s {
 	  push @l, new Toplet (lid   => $self->{baseuri}.host2tid ($_),
 			       sids  => [ "urn:x-dns:$_" ],
 			       chars => [ new Characteristic (lid   => undef,
-							      scope => $self->{ontology}->mids ('us'),
-							      type  => $self->{ontology}->mids ('has-basename'),
+							      scope => $self->{ontology}->tids ('us'),
+							      type  => $self->{ontology}->tids ('has-basename'),
 							      kind  => TM::Retrieve::KIND_BN, 
 							      value => $1 ) ]);
 
@@ -614,8 +628,8 @@ sub _make_instance_s {
 	  push @l, new Toplet (lid   => $self->{baseuri}.$_,
 			       sids  => [ "urn:x-dns:".tid2host ($_) ],
 			       chars => [ new Characteristic (lid   => undef,
-							      scope => $self->{ontology}->mids ('us'),
-							      type  => $self->{ontology}->mids ('has-basename'),
+							      scope => $self->{ontology}->tids ('us'),
+							      type  => $self->{ontology}->tids ('has-basename'),
 							      kind  => TM::Retrieve::KIND_BN, 
 							      value => tid2host ($_) ) ]);
 
