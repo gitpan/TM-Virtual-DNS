@@ -451,8 +451,8 @@ it under the same terms as Perl itself.
 
 =cut
 
-our $VERSION  = '0.11';
-our $REVISION = '$Id: DNS.pm,v 1.8 2006/12/11 10:23:55 rho Exp $';
+our $VERSION  = '0.12';
+our $REVISION = '$Id$';
 
 1;
 

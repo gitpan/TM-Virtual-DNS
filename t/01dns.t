@@ -109,13 +109,13 @@ use constant IP   => '62.218.164.160';
 
     $qq = new TM::QL ('urn:x-ip:'.IP);
     $r = $qq->eval ({'%_' => $tm});
-#warn Dumper $r;
+warn Dumper $r;
     ok (((scalar @$r == 1) and (scalar @{$r->[0]} == 1)), 'ip: result one tuple');
     is ($r->[0]->[0],    'dns:ip:'.IP,                    'ip: content');
 
     $qq = new TM::QL ('( urn:x-ip:'.IP.' , urn:x-fqdn:'.HOST.' )');
     $r = $qq->eval ({'%_' => $tm});
-#warn Dumper $r;
+warn Dumper $r;
     ok (((scalar @$r == 1) and (scalar @{$r->[0]} == 2)), 'ip: result one tuple');
     is ($r->[0]->[0],    'dns:ip:'.IP,                    'ip: content');
     is ($r->[0]->[1],    'dns:fqdn:'.HOST,                'ip: content');
