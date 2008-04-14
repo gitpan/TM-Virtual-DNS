@@ -33,24 +33,29 @@ TM::Virtual::DNS - Virtual Topic Map for DNS retrieval
   my @PTRs = $tm->match_forall (irole   => $tm->tids ('ip-address'), 
                                 iplayer => $tm->tids ('127.0.0.1'),
                                 type    => $tm->tids ('lookup'));
+  print map { TM::get_x_players ($dns, $_, $dns->tids ('fqdn') } @PTRs;
 
 =head1 ABSTRACT
 
-This class provides applications with a topicmapp-ish view of DNS, the domain name service. In this
+This class provides applications with a topicmapp-ish view of the DNS, the global domain name
+service. As the content in the DNS can never be materialized, this topic map is virtual.
+
+
+ In this
 sense the topic map is I<virtual>.
 
 =head1 DESCRIPTION
 
 This package overloads central methods of the L<TM> class.  In that, it provides access to DNS
-information via the Topic Map paradigm according to the DNS ontology.
+information via the Topic Map paradigm. Hereby it uses a terminology from an onboard DNS ontology.
 
 =head2 Ontology
 
 While the map in its core functionality is virtual, it still is based on some fixed concepts, such
 as I<IP address> or I<host name>. These are defined in the ontology which is represented textually
-(in AsTMa= representation) within the string C<$ontology>.
+(in AsTMa= representation) within the string C<$ontology> (class property).
 
-Whenever a DNS topic map is created also this ontology is integrated, so that for the outside user
+Whenever a DNS topic map is created, also this ontology is integrated, so that for the outside user
 there is no visible distinction between topics declared in the ontology and topics (and
 associations) created on-the-fly.
 
@@ -97,8 +102,7 @@ lookup
 
 =head2 Identification
 
-While the predefined concepts have subject indicators, we introduce here our own URI namespaces to
-provide for subject indicators for IP addresses and FQDN:
+We introduce here our own URN x-namespaces to provide subject indicators for IP addresses and FQDN:
 
 =head3 Subject Identifiers
 
@@ -124,7 +128,7 @@ This package recognizes these subject indicators:
 
 =head3 Subject Locators
 
-There are no subject locators for IP addresses and FQDNs.
+Obviously, there are no subject locators for IP addresses and FQDNs.
 
 =head3 Local Identifiers
 
@@ -142,8 +146,7 @@ their syntactic structure:
 
 The constructor needs no arguments and instantiates a virtual map hovering over the DNS. For this
 purpose the constructor also loads the background ontology (there is only a minimal overhead
-involved with this). If you want to use a different one, it has to be replaced B<before> the
-instantiation.
+involved with this). 
 
 Example:
 
@@ -161,7 +164,7 @@ All local IDs in the virtual map will be prefixed with that baseuri.
 
 If this list reference is provided, the IP addresses in there will be used for name resolution.
 
-B<Warning>: This feature cannot be tested properly automatically as many firewall setups prohibit
+B<Warning>: This feature cannot be properly tested automatically as many firewall setups prohibit
 direct DNS access.
 
 Example:
@@ -197,19 +200,6 @@ sub new {
 This subclass of L<TM> overrides the following methods:
 
 =over
-
-=item B<midlets>
-
-This method would list B<all> items in the DNS. Of course, this will not be possible, so this method
-will raise an exception.
-
-=cut
-
-sub midlets {
-    die scalar __PACKAGE__ . ": unwilling to enumerate everything in the DNS";
-}
-
-=pod
 
 =item B<tids>
 
@@ -272,6 +262,9 @@ sub tids {
 This method returns toplet structures as described in L<TM>, either those of predefined concepts or
 ones which are created on the fly if we are dealing with IP addresses or FQDNs.
 
+This method can only deal with a list of local identifiers, not with search specifications. It will
+refuse cooperation to enumerate the whole Internet when the list is empty.
+
 =cut
 
 sub toplets {
@@ -298,6 +291,55 @@ sub toplets {
 =pod
 
 =item B<match_forall>
+
+I<@assertions> = I<$tm>->match_forall (I<...search specification...>)
+
+This method finds all assertions matching the search specification. Following axes are currently
+supported:
+
+=over
+
+=item Code:char.irole
+
+Return all assertions which are characteristics of the given topic. For IP addresses, there is one name
+containing exactly the IP address as string. For FQDN also the string will be used as toplet name.
+
+          'irole' => 'the toplet for which characteristics are sought',
+          'char' => '1'
+
+=item Code:instance.type
+
+Returns all assertions where there are classes of a given toplet. For C<localhost> and all FQDN
+toplets this is C<fqdn>, for C<127.0.0.1> and all IP addresses this is C<ip-address>.
+
+=item Code:iplayer.irole.type  and Code irole.type
+
+Returns all assertions where there is a C<lookup> assertion with the given toplet as player of the
+given role. For IP addresses a reverse DNS lookup is done, for FQDNs a forward lookup.
+
+=item Code:*
+
+All other axes will only look into the underlying ontology.
+
+=back
+
+Examples:
+
+   my @as = # forward lookup for localhost
+   $tm->match_forall (irole   => $tm->tids ('fqdn'),   
+                      iplayer => $tm->tids ('localhost'),
+                      type    => $tm->tids ('lookup'))
+
+   my @as = # forward lookup for one of the A servers
+   $tm->match_forall (irole   => $tm->tids ('fqdn'),
+                      iplayer => $tm->tids ('a.root-servers.net.'),
+                      type    => $tm->tids ('lookup'));
+
+   my @as = # reverse lookup
+   $tm->match_forall (irole   => $tm->tids ('ip-address'),
+                      iplayer => $tm->tids ($ip),
+                      type    => $tm->tids ('lookup'))
+
 
 @@@@ doc!! @@@
 
@@ -451,7 +493,7 @@ it under the same terms as Perl itself.
 
 =cut
 
-our $VERSION  = '0.12';
+our $VERSION  = '0.13';
 our $REVISION = '$Id$';
 
 1;

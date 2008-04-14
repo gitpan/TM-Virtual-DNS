@@ -1,5 +1,9 @@
 Revision history for Perl extension TM::Virtual::DNS.
 
+0.13 Mon Apr 14 18:31:30 CEST 2008
+	- doc improved
+	- obsolete midlet hook removed
+
 0.12 Thu Apr 10 21:23:22 CEST 2008
 	- test added to elicit information for failing on some platforms
 
